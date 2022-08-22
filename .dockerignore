@@ -1,1 +1,6 @@
-.gitignore
+.github
+.venv
+venv
+.docs
+sample
+.env
