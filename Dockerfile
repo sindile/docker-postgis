@@ -125,6 +125,12 @@ cd pointcloud-master && \
 ./autogen.sh && ./configure && make -j 4 && make install && \
 cd .. && rm -Rf pointcloud-master
 
+# Compile h3 extension
+RUN apt-get update \
+    #&& apt-get -y --no-install-recommends install cmake make gcc libtool git pgxnclient postgresql-server-dev-${POSTGRES_MAJOR_VERSION} \
+    && apt-get -y --no-install-recommends install cmake make gcc libtool git pgxnclient \
+    && pgxn install h3
+
 # Cleanup resources
 RUN apt-get -y --purge autoremove  \
     && apt-get clean \
