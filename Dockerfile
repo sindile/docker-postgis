@@ -72,6 +72,7 @@ ARG POSTGRES_MAJOR_VERSION=14
 ARG POSTGIS_MAJOR_VERSION=3
 ARG POSTGIS_MINOR_RELEASE=2
 ARG TIMESCALE_VERSION=2-2.7.2
+ARG H3_VERSION=4.0.2
 ARG BUILD_TIMESCALE=false
 
 
@@ -125,11 +126,11 @@ cd pointcloud-master && \
 ./autogen.sh && ./configure && make -j 4 && make install && \
 cd .. && rm -Rf pointcloud-master
 
-# Compile h3 extension
-RUN apt-get update \
+# Compile h3 extension - use backports
+RUN echo 'deb http://deb.debian.org/debian bullseye-backports main' >> /etc/apt/sources.list && \
     #&& apt-get -y --no-install-recommends install cmake make gcc libtool git pgxnclient postgresql-server-dev-${POSTGRES_MAJOR_VERSION} \
-    && apt-get -y --no-install-recommends install cmake make gcc libtool git pgxnclient \
-    && pgxn install h3
+    apt-get update && apt-get -t bullseye-backports -y --no-install-recommends install cmake make gcc libtool git pgxnclient \
+    && pgxn install h3=${H3_VERSION}
 
 # Cleanup resources
 RUN apt-get -y --purge autoremove  \
