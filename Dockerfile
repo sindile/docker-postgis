@@ -27,7 +27,9 @@ RUN set -eux \
     && dpkg-divert --local --rename --add /sbin/initctl
 
 RUN apt-get -y update; apt-get -y install build-essential autoconf  libxml2-dev zlib1g-dev netcat gdal-bin \
-    figlet toilet
+    figlet toilet gosu; \
+    # verify that the binary works
+	gosu nobody true
 
 # Generating locales takes a long time. Utilize caching by runnig it by itself
 # early in the build process.
@@ -68,10 +70,10 @@ FROM postgis-base AS postgis-prod
 
 # Reset ARG for version
 ARG IMAGE_VERSION
-ARG POSTGRES_MAJOR_VERSION=14
+ARG POSTGRES_MAJOR_VERSION=15
 ARG POSTGIS_MAJOR_VERSION=3
-ARG POSTGIS_MINOR_RELEASE=2
-ARG TIMESCALE_VERSION=2-2.7.2
+ARG POSTGIS_MINOR_RELEASE=3
+ARG TIMESCALE_VERSION=2-2.9.1
 ARG BUILD_TIMESCALE=false
 
 
@@ -92,6 +94,7 @@ RUN set -eux \
 # We add postgis as well to prevent build errors (that we dont see on local builds)
 # on docker hub e.g.
 # The following packages have unmet dependencies:
+#TODO add postgresql-${POSTGRES_MAJOR_VERSION}-cron back when it's available
 RUN set -eux \
     && export DEBIAN_FRONTEND=noninteractive \
     &&  apt-get update \
@@ -101,7 +104,7 @@ RUN set -eux \
         netcat postgresql-${POSTGRES_MAJOR_VERSION}-ogr-fdw \
         postgresql-${POSTGRES_MAJOR_VERSION}-postgis-${POSTGIS_MAJOR_VERSION}-scripts \
         postgresql-plpython3-${POSTGRES_MAJOR_VERSION} postgresql-${POSTGRES_MAJOR_VERSION}-pgrouting \
-        postgresql-server-dev-${POSTGRES_MAJOR_VERSION} postgresql-${POSTGRES_MAJOR_VERSION}-cron \
+        postgresql-server-dev-${POSTGRES_MAJOR_VERSION}  postgresql-${POSTGRES_MAJOR_VERSION}-cron \
         postgresql-${POSTGRES_MAJOR_VERSION}-mysql-fdw
 
 # TODO a case insensitive match would be more robust
@@ -143,9 +146,9 @@ RUN chmod +x *.sh
 RUN set -eux \
     && /scripts/setup.sh;rm /scripts/.pass_*
 RUN echo 'figlet -t "Kartoza Docker PostGIS"' >> ~/.bashrc
-VOLUME /var/lib/postgresql
 
-ENTRYPOINT /scripts/docker-entrypoint.sh
+
+ENTRYPOINT ["/bin/bash", "/scripts/docker-entrypoint.sh"]
 
 
 ##############################################################################
@@ -158,7 +161,7 @@ COPY ./scenario_tests/utils/requirements.txt /lib/utils/requirements.txt
 RUN set -eux \
     && export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
-    && apt-get -y --no-install-recommends install python3-pip \
+    && apt-get -y --no-install-recommends install python3-pip procps \
     && apt-get -y --purge autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
