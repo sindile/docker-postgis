@@ -272,6 +272,13 @@ POSTGRES_MULTIPLE_EXTENSIONS=postgis,pgrouting:3.4.0
 where `pgrouting:3.4.0` The extension name is fixed with the version name with the delimiter being a
 colon.
 
+**Note** In some cases, some versions of extensions might not be available for
+install. To enable them you can do the following inside the container:
+```bash
+wget --directory-prefix /usr/share/postgresql/15/extension/ https://raw.githubusercontent.com/postgres/postgres/master/contrib/hstore/hstore--1.1--1.2.sql
+```
+Then proceed to install it the normal way.
+
 #### Shared preload libraries
 
 Some PostgreSQL extensions require shared_preload_libraries to be specified in the conf files.
@@ -356,7 +363,7 @@ This image uses the initial PostgreSQL values which disables the archiving optio
 * `-e WAL_SIZE=4GB`
 * `-e MIN_WAL_SIZE=2048MB`
 * `-e WAL_SEGSIZE=1024`
-* `-e MAINTAINANCE_WORK_MEM=128MB`
+* `-e MAINTENANCE_WORK_MEM=128MB`
 
 #### Configure networking
 
@@ -507,19 +514,21 @@ In some instances users want to run some SQL scripts to populate the database. T
 variable `POSTGRES_DB` allows us to specify multiple database that can be created on startup. When
 running scripts they will only be executed against the first database ie
 `POSTGRES_DB=gis,data,sample`. The SQL script will be executed against the `gis` database.
+
+The database will start accepting connection only after the script will have been executed.
+
 Additionally, a lock file is generated in `/docker-entrypoint-initdb.d`, which will prevent the
 scripts from getting executed after the first container startup. Provide
-`IGNORE_INIT_HOOK_LOCKFILE=true` to execute the scripts on _every_ container start.
-
-By default, the lockfile is generated in `/docker-entrypoint-initdb.d` but it can be overwritten by
- passing the environment variable `SCRIPTS_LOCKFILE_DIR` which can point to another location i.e
+`IGNORE_INIT_HOOK_LOCKFILE=true` to execute the scripts on _every_ container start. By default, the
+lockfile is generated in `/docker-entrypoint-initdb.d` but it can be overwritten by
+passing the environment variable `SCRIPTS_LOCKFILE_DIR` which can point to another location i.e
 
  ```shell
  -e SCRIPTS_LOCKFILE_DIR=/data/ \
  -v /data:/data
  ```
 
-Currently, you can pass `.sql`, `.sql.gz` and `.sh` files as mounted volumes.
+Currently, you can pass `.sql`, `.sql.gz`, `.py` and `.sh` files as mounted volumes.
 
 ```shell
 docker run -d -v `pwd`/setup-db.sql:/docker-entrypoint-initdb.d/setup-db.sql kartoza/postgis
@@ -723,7 +732,7 @@ Slave settings:
 - **DESTROY_DATABASE_ON_RESTART**: Default is `True`. Set to 'False' to prevent this behavior. A
   replicant will always destroy its current database on restart, because it will try to sync again
   from `master` and avoid inconsistencies.
-- **PROMOTE_MASTER**: Default none. If set to any value then the current replicant
+- **PROMOTE_MASTER**: Default false. If set to `true` then the current replicant
   will be promoted to master. In some cases when the `master` container has failed, we might want
   to use our `replicant` as `master` for a while. However, the promoted replicant will break
   consistencies and is not able to revert to replicant anymore, unless it is destroyed and
