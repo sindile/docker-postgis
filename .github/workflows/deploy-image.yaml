@@ -42,7 +42,7 @@ jobs:
 
       - name: Get Current Date
         id: current_date
-        shell: python
+        shell: bash
         run: echo "formatted=$(date -u +'%Y.%m.%d')" >> $GITHUB_OUTPUT
 
       - name: Build base image
